@@ -16,21 +16,27 @@ Including another URLconf
 from django.contrib import admin
 
 from django.urls import path, include
-from rest_framework import routers
+from rest_framework_nested import routers
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 # ViewSets define the view behavior.
-from bookstore.views import UserViewSet, BookViewSet, AuthorViewSet
+from bookstore import views
 
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
-router.register(r'users', UserViewSet)
-router.register(r'books', BookViewSet)
-router.register(r'authors', AuthorViewSet)
+router.register(r'users', views.UserViewSet)
+router.register(r'books', views.BookViewSet)
+router.register(r'authors', views.AuthorViewSet)
+# router.register(r'orders', views.PlainOrderViewSet)
+router.register(r'customers', views.CustomerViewSet, basename='customer')
+
+customers_router = routers.NestedSimpleRouter(router, r'customers', lookup='customer')
+customers_router.register(r'orders', views.CustomerOrderViewSet, basename='customer-order')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include(router.urls)),
+    path('', include(customers_router.urls)),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

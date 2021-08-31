@@ -2,17 +2,7 @@ import uuid
 from decimal import Decimal
 
 from django.contrib.auth.models import User
-from django.core.exceptions import ValidationError
 from django.db import models
-
-
-def validate_non_admin(value):
-    """
-
-    :type value: User
-    """
-    if value.is_staff:
-        raise ValidationError("Customer cannot be staff")
 
 
 class Author(models.Model):
@@ -34,13 +24,25 @@ class Book(models.Model):
 
 
 class Customer(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, validators=[validate_non_admin], primary_key=True)
-    cart = models.ManyToManyField(Book)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    address = models.CharField(max_length=100, null=True)
+    cart = models.ManyToManyField(Book, blank=True)
 
 
 class Order(models.Model):
-    customer = models.OneToOneField(Customer, on_delete=models.CASCADE)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
     books = models.ManyToManyField(Book)
+    address = models.CharField(max_length=100)
+
+    def _get_computed_price(self):
+        return sum(map(lambda x: x.price, self.books))
+
+    def get_queryset(self):
+        qs = super(Order, self).get_queryset().annotate(
+            link=self._get_computed_price)
+        return qs
+
+
 
 
 
